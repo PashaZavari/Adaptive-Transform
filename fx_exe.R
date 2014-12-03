@@ -80,8 +80,8 @@ while(TRUE)
     tried <- try({
       mkt <- lapply(1:nrow(fx.list), function(i){reqMktData(tws, ccy[[i]], eventWrapper = eWrapper.data.Last(1), CALLBACK = snapShot)})
       if(identical(format(Sys.time(), "%H:%M"), t.next) || !(init)) {
-        sec <- lapply(1:nrow(fx.list), function(i){
-          temp <- OHLC(reqHistoricalData(tws, ccy[[i]], barSize='1 hour', duration='2 W', whatToShow="MIDPOINT"))
+        sec <- lapply(1:nrow(fx.list), function(j){
+          temp <- OHLC(reqHistoricalData(tws, ccy[[j]], barSize='1 hour', duration='2 W', whatToShow="MIDPOINT"))
           temp[nrow(temp),2:4] <- c(NA, NA, NA)
           return(temp)
         })
@@ -146,7 +146,7 @@ while(TRUE)
         cat("********************************************************************* \n")	        
       }   
 
-      if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omgea, 1))
+      if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1))
       {
         oca <- format(Sys.time(), "%Y%m%d %X"); filled <- TRUE; 
         placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="MKT"))  
