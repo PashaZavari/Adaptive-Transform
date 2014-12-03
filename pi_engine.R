@@ -64,6 +64,77 @@ ft <- function(X, r=2*pi, itr=1)
   return(stmFt[2]*cos(pi*N) + stmFt[3]*sin(pi*N)) 
 }
 
+transform <- function(Z, p=14, sm.par=120, basis=0.0001, na.rm=TRUE, trunc=NULL)
+{    
+  return(lapply(1:length(Z), function(i){
+    X <- Z[[i]] 
+    X <- X[!duplicated(index(X))]
+
+    a <- ((2^(1/2))/(2^1))
+    b <- (-sqrt(2)/(pi))
+    c <- sqrt(2)
+    
+    mu <- rollCall(log(Op(X)), method = "mean", n = p, trim = FALSE)
+    var <- rollCall(log(Op(X)), method ="var", n = p, trim = FALSE)
+    sigma <- sqrt(var)
+    sigma_inv <- 1/sigma
+    
+    df <- a*sigma_inv*exp(b*{log(Op(X))-mu}*sigma_inv)
+    
+    FFT <- (fft(na.omit(df))/nrow(na.omit(df)))[-1,]
+    
+    mag.h <- sqrt(Re(FFT[,1])^2 + Im(FFT[,1])^2)
+    vr.h <- (mag.h^2)/2
+    ang.h <- atan(Im(FFT[,1])/Re(FFT[,1]))
+    
+    mktData <- X[(p+1):nrow(X)]
+    
+    chord <- 2*mag.h*sin(ang.h/2)
+    disp <- mag.h-sqrt(chord^2 - (mag.h*sin(ang.h))^2)
+    r <- mag.h
+    inv <- chord/(mag.h*sin(ang.h))
+    inv <- (inv-min(na.omit(inv)))/(max(na.omit(inv))-min(na.omit(inv)))
+    delta <- asin(inv)
+    ang.v <- chord*sin(delta)/r
+    ang.a <- chord*cos(delta)/r
+    pheta <- ang.h*180/(2*pi)
+    f.t <- (mag.h*(cos(ang.h)+(Im(FFT[,1])*sin(ang.h))))
+    ang.v <- lag(ang.v)
+    ang.a <- ang.v +2*(ang.a)
+    velocity <- diff(diff(chord/r)*r)
+    
+    open <- as.numeric(Op(mktData))
+    ang.v <- ifelse(is.nan(ang.v), 0, ang.v)
+    delta <- ifelse(is.nan(delta), 0, delta)
+   
+    omega <- ifelse(log(open) < 1, round(WMA(open+(ang.v/(open*100)), sm.par)/(basis/2))*(basis/2), round(WMA(open+ang.v, sm.par)/(basis*100/2))*(basis*100/2)) 
+    gamma <- ifelse(log(open) < 1, round(WMA(open+(delta/(open*100)), sm.par)/(basis/2))*(basis/2), round(WMA(open+delta, sm.par)/(basis*100/2))*(basis*100/2))
+  
+    t.mat <- cbind(mktData, omega, gamma)
+    size <- nrow(mktData)
+    rm.leads <- size-sm.par-p
+    
+    if(na.rm)
+    {
+      t.mat <- tail(t.mat, rm.leads)
+    }
+    
+    if(!is.null(trunc))
+    {
+      if(trunc >= rm.leads) {
+        cat("[Request truncation exceeds matrix size, defaulting to maximum.]")
+        t.mat <- tail(t.mat, rm.leads)
+      } else {
+      t.mat <- tail(t.mat, trunc)
+      }
+    }
+    
+    colnames(t.mat) <- c("Open", "High", "Low", "Close", "omega", "gamma")
+    
+    t.mat
+  }))
+}
+
 cmLogic <- function(X, cntrs=2, itr=10, mass=2)
 {
 	set.seed(1)
@@ -202,7 +273,7 @@ rollFun <- function(x, n, FUN, ...)
   return(ans)
 }
 
-rollVar <- function(x, n = 9, method = NULL, trim = TRUE, unbiased = TRUE, na.rm = FALSE)
+rollCall <- function(x, n = 9, method = NULL, trim = TRUE, unbiased = TRUE, na.rm = FALSE)
 {  
   x <- as.vector(x)
   
