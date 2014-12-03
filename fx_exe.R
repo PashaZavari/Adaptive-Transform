@@ -58,7 +58,8 @@ fx.list <- rbind(c("EUR","USD"), c("USD","JPY"), c("GBP","USD"))
 fx.lock <- list(TRUE, TRUE, TRUE)
 ccy <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"forex", tws)})
 cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
-img.dir <- "/Library/WebServer/Documents/PriceTape.png" 
+img.dir <- "/Library/WebServer/Documents/PriceTape.png"; port.dir <- "/Library/WebServer/Documents/PortSnap.csv";
+ 
 margin <- 0.023
 oca <- 0; init <- FALSE; filled <- FALSE; t.tree <- as.matrix(seq(0,23,1))
 
@@ -179,6 +180,9 @@ while(TRUE)
       } 
     }
   }
+  
+  portfolio <- twsPortfolioValue(reqAccountUpdates(tws))
+  if(!is.null(portfolio)){write.table(portfolio, port.dir, sep=",", append=FALSE, row.names=FALSE, col.names=TRUE, fileEncoding="UTF-8")}	
 
   png(filename=img.dir, width=750, height=500)
   par(mfrow=c(3,1), mar=c(2.1, 4.1, 2.1, 1.1), xpd=TRUE, bg="#444444",cex.lab = 0.8,cex.main = 0.9, cex.axis=0.6, col.axis="#CCCCCC", col.lab="#CCCCCC", col.main="#CCCCCC", fg="#CCCCCC", adj=1)
