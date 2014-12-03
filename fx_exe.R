@@ -23,7 +23,6 @@ library(fTrading)
 library(RCurl)
 library(chron)
 library(timeDate)
-library(mailR)
 library(quantmod)
 
 cat("[Libraries loaded successfully] \n")
@@ -140,15 +139,7 @@ while(TRUE)
         cat("********************************************************************* \n")	
         
         placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="STP", auxPrice=tail(t.band[[i]]$gamma, 1), tif="GTC", ocaGroup=oca))
-        
-        #         send.mail(from = "pashazavari@gmail.com",
-        #                   to = "6044416599@pcs.rogers.com",
-        #                   subject = "FOREXBot Trade Activity Notification",
-        #                   body = paste("BUY SIGNAL @ ",as.numeric(twsPortfolioValue(reqAccountUpdates(tws))$averageCost)," on ",format(Sys.time(), "%Y %a %b %d %X"),"@ http://24.87.162.133/Forex_bot.html"),
-        #                   smtp = list(host.name = "smtp.gmail.com", port = 587, user.name = "pashazavari", passwd = "vancouverthedawg", ssl = TRUE),
-        #                   authenticate = TRUE,
-        #                   send = TRUE)
-       
+
         init.cap <- as.real(reqAccountUpdates(tws)[[1]]$NetLiquidation[1])
         
         cat("AVAILABLE FUNDS: $", as.numeric(init.cap),"\n")
@@ -164,14 +155,6 @@ while(TRUE)
         cat("********************************************************************* \n")  
         
         placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="STP", auxPrice=tail(t.band[[i]]$omega, 1), tif="GTC", ocaGroup=oca))
-        
-        #         send.mail(from = "pashazavari@gmail.com",
-        #                   to = "6044416599@pcs.rogers.com",
-        #                   subject = "FOREXBot Trade Activity Notification",
-        #                   body = paste("BUY SIGNAL @ ",as.numeric(twsPortfolioValue(reqAccountUpdates(tws))$averageCost)," on ",format(Sys.time(), "%Y %a %b %d %X"),"@ http://24.87.162.133/Forex_bot.html"),
-        #                   smtp = list(host.name = "smtp.gmail.com", port = 587, user.name = "pashazavari", passwd = "vancouverthedawg", ssl = TRUE),
-        #                   authenticate = TRUE,
-        #                   send = TRUE)
         
         init.cap <- as.real(reqAccountUpdates(tws)[[1]]$NetLiquidation[1])
         
