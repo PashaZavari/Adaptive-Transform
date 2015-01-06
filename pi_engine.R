@@ -64,7 +64,7 @@ ft <- function(X, r=2*pi, itr=1)
   return(stmFt[2]*cos(pi*N) + stmFt[3]*sin(pi*N)) 
 }
 
-transform <- function(Z, p=14, sm.par=120, basis=0.0001, na.rm=TRUE, trunc=NULL)
+transform <- function(Z, p=14, s=14, sm.par=120, basis=0.0001, na.rm=TRUE, trunc=NULL)
 {    
   return(lapply(1:length(Z), function(i){
     X <- Z[[i]] 
@@ -110,9 +110,18 @@ transform <- function(Z, p=14, sm.par=120, basis=0.0001, na.rm=TRUE, trunc=NULL)
     omega <- ifelse(log(open) < 1, round(WMA(open+(ang.v/(open*100)), sm.par)/(basis/2))*(basis/2), round(WMA(open+ang.v, sm.par)/(basis*100/2))*(basis*100/2)) 
     gamma <- ifelse(log(open) < 1, round(WMA(open+(delta/(open*100)), sm.par)/(basis/2))*(basis/2), round(WMA(open+delta, sm.par)/(basis*100/2))*(basis*100/2))
   
-    t.mat <- cbind(mktData, omega, gamma)
+    o_sigma <- rollapply(omega,width = s, FUN=sd)
+    g_sigma <- rollapply(gamma,width = s, FUN=sd)
+        
+    omega <- rbind(as.matrix(rep(NA, p)), as.matrix(omega))
+    gamma <- rbind(as.matrix(rep(NA, p)), as.matrix(gamma))
+    o_sigma <- rbind(as.matrix(rep(NA, p+s-1)), as.matrix(o_sigma))
+    g_sigma <- rbind(as.matrix(rep(NA, p+s-1)), as.matrix(g_sigma))
+    mktData <- X
+    
+    t.mat <- cbind(mktData, omega, gamma, o_sigma, g_sigma)
     size <- nrow(mktData)
-    rm.leads <- size-sm.par-p
+    rm.leads <- size-sm.par-p-(s-1)
     
     if(na.rm)
     {
@@ -129,7 +138,7 @@ transform <- function(Z, p=14, sm.par=120, basis=0.0001, na.rm=TRUE, trunc=NULL)
       }
     }
     
-    colnames(t.mat) <- c("Open", "High", "Low", "Close", "omega", "gamma")
+    colnames(t.mat) <- c("Open", "High", "Low", "Close", "omega", "gamma", "o_sigma", "g_sigma")
     
     t.mat
   }))
