@@ -53,14 +53,13 @@ if(isConnection()){
 }
 cat("[System online] \n")
 
-fx.list <- rbind(c("EUR","USD"), c("USD","JPY"), c("GBP","USD"))
+fx.list <- rbind(c("EUR","USD"), c("USD","JPY"), c("USD","CHF"))
 fx.lock <- list(TRUE, TRUE, TRUE)
-ccy <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"forex", tws)})
-cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
-img.dir <- "/Library/WebServer/Documents/PriceTape.png"; port.dir <- "/Library/WebServer/Documents/PortSnap.csv";
+
+img.dir <- "/Library/WebServer/Documents/PriceTape.png"; img.subdir <- "/Library/WebServer/Documents/PortSnap.png"; port.dir <- "/Library/WebServer/Documents/PortSnap.csv";
  
 margin <- 0.023
-oca <- 0; init <- FALSE; filled <- FALSE; t.tree <- as.matrix(seq(0,23,1))
+oca <- 0; init <- FALSE; filled <- rep(FALSE,nrow(fx.list)); t.tree <- as.matrix(seq(0,23,1))
 
 while(TRUE)
 {
@@ -74,12 +73,34 @@ while(TRUE)
   
   t.node <- which(as.numeric(format(Sys.time(), "%H")) - t.tree == 0, arr.ind=FALSE)
   t.next <- paste(as.character(ifelse(t.node < 23, t.node+1, 0)),":00", sep="")
+  init.cap <- as.numeric(reqAccountUpdates(tws)[[1]]$NetLiquidation[1]); lot.size <- (init.cap*margin)^2
+  
+  if(t.next == "00:00" || !init)
+  { 
+    write.table(init.cap, "eq.curve.csv", sep=",", append=TRUE, row.names=FALSE, col.names=FALSE, fileEncoding="UTF-8")
+    eq.curve <- as.matrix(read.csv("eq.curve.csv", header=FALSE)) 
+    
+    png(filename=img.subdir, width=750, height=500)
+    par(mfrow=c(1,1), mar=c(2.1, 4.1, 2.1, 1.1), xpd=TRUE, bg="#444444",cex.lab = 0.8,cex.main = 0.9, cex.axis=0.6, col.axis="#CCCCCC", col.lab="#CCCCCC", col.main="#CCCCCC", fg="#CCCCCC", adj=1)
+    matplot(eq.curve, lty= 1, lwd=1.5, col=heat.colors(n = 1), type="l", main=paste("Portfolio size as of ",format(Sys.time(), "%Y %a %b %d %X"), sep=""), xlab=NA, ylab=NA)
+    title(ylab="$CAD", xlab=NA, adj=0.5)
+    lnames <- c('Equity Curve') 
+    legend("topleft", lnames, inset=c(0,-0.3), col=heat.colors(n = 1), lty = 1, lwd=2, horiz=TRUE, text.width=(3), cex=0.9, pt.cex=10, bty="n") 
+    par(xpd=FALSE)
+    grid(lty = 3, col="#AAAAAA")
+    dev.off()   
+  }
 
   while(TRUE)
   {
     tried <- try({
-      mkt <- lapply(1:nrow(fx.list), function(i){reqMktData(tws, ccy[[i]], eventWrapper = eWrapper.data.Last(1), CALLBACK = snapShot)})
-      if(identical(format(Sys.time(), "%H:%M"), t.next) || !(init)) {
+      ccy <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"forex", tws)})
+      mkt <- reqMktData(tws, ccy, eventWrapper = eWrapper.data.Last(3), CALLBACK = snapShot)
+      mkt <- lapply(1:nrow(fx.list), function(i){
+        mkt[i,]
+      })
+      if(identical(format(Sys.time(), "%H:%M"), t.next) || !init || format(Sys.time(), "%H:%M") == "14:15") {
+        ccy <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"forex", tws)})
         sec <- lapply(1:nrow(fx.list), function(j){
           temp <- OHLC(reqHistoricalData(tws, ccy[[j]], barSize='1 hour', duration='2 W', whatToShow="MIDPOINT"))
           temp[nrow(temp),2:4] <- c(NA, NA, NA)
@@ -89,28 +110,28 @@ while(TRUE)
       init <- TRUE
     }, silent = TRUE)    
     if(inherits(tried, "try-error")) {
-      cat("Corrupted connection. Applying patch... \n")		
+      cat("Corrupted connection. Applying patch...",format(Sys.time(), "%Y %a %b %d %X"),"\n")		
       Sys.sleep(1)
     } else {
-      if(length(sec) > 0) {
-        cat("[Connection okay] \n")
+      if(length(sec) > 0 && length(mkt) > 0) {
+        #cat("[Connection okay] \n")
         break
       } else {
-        cat("Corrupted connection. Applying patch... \n")
+        cat("Corrupted connection. Applying patch...",format(Sys.time(), "%Y %a %b %d %X"),"\n")  	
         twsDisconnect(tws)
         if(isConnection()){
           tws <- ibgConnect(clientId=1)
         } else {
           while(!isConnection())
           {
-            cat("Network connection interupted... \n")		
+            cat("Network connection interupted...",format(Sys.time(), "%Y %a %b %d %X"),"\n")		
             Sys.sleep(1)
             
             if(isConnection())
             {
               Sys.sleep(1)
               tws <- ibgConnect(clientId=1)
-              cat("[Network connection re-established] \n")	
+              cat("[Network connection re-established: ",format(Sys.time(), "%Y %a %b %d %X"),"] \n")	
               break
             }		
           }
@@ -120,22 +141,33 @@ while(TRUE)
   }
   
   t.band <- transform(sec, 14, sm.par = 120, basis = 0.0001, na.rm = TRUE)
-  init.cap <- as.numeric(reqAccountUpdates(tws)[[1]]$NetLiquidation[1]); lot.size <- (init.cap*margin)^2
   
   fx.lock <- lapply(1:nrow(fx.list), function(i) {
-    if(tail(t.band[[i]]$gamma, 1) > mkt[[i]]$AskPrice && tail(t.band[[i]]$omega, 1) < mkt[[i]]$BidPrice) FALSE else TRUE
+    if(fx.lock[[i]]) if(tail(t.band[[i]]$gamma, 1) > mkt[[i]]$AskPrice && tail(t.band[[i]]$omega, 1) < mkt[[i]]$BidPrice) FALSE else TRUE else FALSE
   })
   
   for(i in 1:nrow(fx.list))
   {
     if(!fx.lock[[i]])
     {
-      if(mkt[[i]]$AskPrice > tail(t.band[[i]]$gamma, 1))
+      if(filled[i]) 
       {
-        oca <- format(Sys.time(), "%Y%m%d %X"); filled <- TRUE;
-        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="MKT"))  
+        index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
+        if(twsPortfolioValue(reqAccountUpdates(tws))$position[index] == 0) filled <- FALSE
+      }
+
+      if(mkt[[i]]$AskPrice > tail(t.band[[i]]$gamma, 1) && !filled)
+      {
+        oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- TRUE;
+        cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
         
-        cat("BUY SIGNAL @ ",as.numeric(twsPortfolioValue(reqAccountUpdates(tws))$averageCost)," on ",format(Sys.time(), "%Y %a %b %d %X"),"\n")
+        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$AskPrice))  
+        
+        index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
+        
+        Sys.sleep(1)
+        
+        cat("BUY SIGNAL @ ",as.numeric(mkt[[i]]$AskPrice)," on ",format(Sys.time(), "%Y %a %b %d %X"),"\n")
         cat("********************************************************************* \n")	
         
         placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="STP", auxPrice=tail(t.band[[i]]$gamma, 1), tif="GTC", ocaGroup=oca))
@@ -146,12 +178,18 @@ while(TRUE)
         cat("********************************************************************* \n")	        
       }   
 
-      if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1))
+      if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1) && !filled)
       {
-        oca <- format(Sys.time(), "%Y%m%d %X"); filled <- TRUE; 
-        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="MKT"))  
+        oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- TRUE; 
+        cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
         
-        cat("SELL SIGNAL @ ",as.numeric(twsPortfolioValue(reqAccountUpdates(tws))$averageCost)," on ",format(Sys.time(), "%Y %a %b %d %X"),"\n")
+        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$BidPrice))  
+        
+        index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
+        
+        Sys.sleep(1)
+        
+        cat("SELL SIGNAL @ ",as.numeric(mkt[[i]]$BidPrice)," on ",format(Sys.time(), "%Y %a %b %d %X"),"\n")
         cat("********************************************************************* \n")  
         
         placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="STP", auxPrice=tail(t.band[[i]]$omega, 1), tif="GTC", ocaGroup=oca))
@@ -167,8 +205,8 @@ while(TRUE)
   portfolio <- twsPortfolioValue(reqAccountUpdates(tws))
   if(!is.null(portfolio)){write.table(portfolio, port.dir, sep=",", append=FALSE, row.names=FALSE, col.names=TRUE, fileEncoding="UTF-8")}	
 
-  png(filename=img.dir, width=750, height=500)
-  par(mfrow=c(3,1), mar=c(2.1, 4.1, 2.1, 1.1), xpd=TRUE, bg="#444444",cex.lab = 0.8,cex.main = 0.9, cex.axis=0.6, col.axis="#CCCCCC", col.lab="#CCCCCC", col.main="#CCCCCC", fg="#CCCCCC", adj=1)
+  png(filename=img.dir, width=750, height=996)
+  par(mfrow=c(3,1), mar=c(2.1, 4.1, 2.1, 1.1), xpd=TRUE, bg="#444444",cex.lab = 1,cex.main = 1.1, cex.axis=1, col.axis="#CCCCCC", col.lab="#CCCCCC", col.main="#CCCCCC", fg="#CCCCCC", adj=1)
   for(i in 1:nrow(fx.list))
   {
     temp <- t.band[[i]]
@@ -176,30 +214,17 @@ while(TRUE)
     matplot(cbind(temp$omega, temp$gamma, Op(temp), Hi(temp), Lo(temp)), lty= 1, lwd=1.5, col=heat.colors(n = 5), type="l", main=paste(toString(fx.list[i,])," [",format(Sys.time(), "%Y %a %b %d %X"),"]", sep=""), xlab=NA, ylab=NA, ylim=c(min(temp$omega,Lo(temp), na.rm = TRUE),max(temp$gamma,Hi(temp), na.rm = TRUE)))
     title(ylab="Spot Rate", xlab=NA, adj=0.5)
     lnames <- c(expression(~ omega), expression(~ gamma),'Open', 'High', 'Low') 
-    legend("topleft", lnames, inset=c(0,-0.3), col=heat.colors(n = 5), lty = 1, lwd=2, horiz=TRUE, text.width=(3), cex=0.9, pt.cex=10, bty="n") 
+    legend("topleft", lnames, inset=c(0,-0.06), col=heat.colors(n = 5), lty = 1, lwd=2, horiz=TRUE, text.width=(3), cex=1.1, pt.cex=10, bty="n") 
     par(xpd=FALSE)
     grid(lty = 3, col="#AAAAAA")
     abline(v=nrow(temp)-1, lty=3, lwd=3, col="#AAAAAA")
     if(fx.lock[[i]]) mtext("LOCKED", side=4, col="red", line=0.2, cex=0.8)
   }
+  dev.off() 
   
-  if(t.next == "00:00" || init)
-  { 
-    write.table(init.cap, "eq.curve.csv", sep=",", append=TRUE, row.names=FALSE, col.names=FALSE, fileEncoding="UTF-8")
-    eq.curve <- as.matrix(read.csv("eq.curve.csv", header=FALSE)) 
-    
-    png(filename=img.dir, width=750, height=500)
-    matplot(eq.curve, lty= 1, lwd=1.5, col=heat.colors(n = 1), type="l", main=paste("Portfolio size as of ",format(Sys.time(), "%Y %a %b %d %X"), sep=""), xlab=NA, ylab=NA, ylim=c(min(temp$omega,Lo(temp), na.rm = TRUE),max(temp$gamma,Hi(temp), na.rm = TRUE)))
-    title(ylab="$CAD", xlab=NA, adj=0.5)
-    lnames <- c('Equity Curve') 
-    legend("topleft", lnames, inset=c(0,-0.3), col=heat.colors(n = 1), lty = 1, lwd=2, horiz=TRUE, text.width=(3), cex=0.9, pt.cex=10, bty="n") 
-    par(xpd=FALSE)
-    grid(lty = 3, col="#AAAAAA")
-    dev.off()   
-  }
- 
   end.time <- Sys.time()
-  Sys.sleep(30-(end.time-start.time))
+  diff.time <- 5-(end.time-start.time)
+  Sys.sleep(ifelse(diff.time > 0, diff.time, 0))
 }
 
 cat("**************************************************** \n")
