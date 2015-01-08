@@ -186,3 +186,65 @@ snapShot <- function (twsCon, eWrapper, timestamp, file, playback = 1, ...)
        }
    }
 }
+
+function (orderId, action = "BUY", totalQuantity = "10", orderType = "LMT", 
+          lmtPrice = "0.0", auxPrice = "0.0", tif = "", outsideRTH = "0", 
+          openClose = "O", origin = .twsOrderID$CUSTOMER, ocaGroup = "", 
+          account = "", orderRef = "", transmit = TRUE, parentId = "0", 
+          blockOrder = "0", sweepToFill = "0", displaySize = "0", triggerMethod = "0", 
+          hidden = "0", discretionaryAmt = "0.0", goodAfterTime = "", 
+          goodTillDate = "", faGroup = "", faMethod = "", faPercentage = "", 
+          faProfile = "", shortSaleSlot = "0", designatedLocation = .twsOrderID$EMPTY_STR, 
+          ocaType = "0", rule80A = "", settlingFirm = "", clearingAccount = "", 
+          clearingIntent = "", allOrNone = "0", minQty = "", percentOffset = "", 
+          eTradeOnly = "0", firmQuoteOnly = "0", nbboPriceCap = "", 
+          auctionStrategy = "0", startingPrice = "", stockRefPrice = "", 
+          delta = "", stockRangeLower = "", stockRangeUpper = "", overridePercentageConstraints = "0", 
+          volatility = "", volatilityType = "", deltaNeutralOrderType = "", 
+          deltaNeutralAuxPrice = "", continuousUpdate = "0", referencePriceType = "", 
+          trailStopPrice = "", basisPoints = "", basisPointsType = "", 
+          scaleInitLevelSize = "", scaleSubsLevelSize = "", scalePriceIncrement = "", 
+          notHeld = FALSE, algoStrategy = "", algoParams = NULL, whatIf = FALSE, 
+          clientId = "", permId = "") 
+{
+  if (missing(orderId)) 
+    orderId <- ""
+  structure(list(orderId = orderId, clientId = clientId, permId = permId, 
+                 action = action, totalQuantity = as.character(as.numeric(totalQuantity)), 
+                 orderType = orderType, lmtPrice = as.character(lmtPrice), 
+                 auxPrice = as.character(auxPrice), tif = tif, ocaGroup = ocaGroup, 
+                 ocaType = ocaType, orderRef = orderRef, transmit = as.character(as.integer(transmit)), 
+                 parentId = parentId, blockOrder = blockOrder, sweepToFill = sweepToFill, 
+                 displaySize = displaySize, triggerMethod = triggerMethod, 
+                 outsideRTH = outsideRTH, hidden = hidden, goodAfterTime = goodAfterTime, 
+                 goodTillDate = goodTillDate, overridePercentageConstraints = overridePercentageConstraints, 
+                 rule80A = rule80A, allOrNone = allOrNone, minQty = minQty, 
+                 percentOffset = percentOffset, trailStopPrice = trailStopPrice, 
+                 faGroup = faGroup, faProfile = faProfile, faMethod = faMethod, 
+                 faPercentage = faPercentage, openClose = openClose, origin = origin, 
+                 shortSaleSlot = shortSaleSlot, designatedLocation = designatedLocation, 
+                 discretionaryAmt = discretionaryAmt, eTradeOnly = eTradeOnly, 
+                 firmQuoteOnly = firmQuoteOnly, nbboPriceCap = nbboPriceCap, 
+                 auctionStrategy = auctionStrategy, startingPrice = startingPrice, 
+                 stockRefPrice = stockRefPrice, delta = delta, stockRangeLower = stockRangeLower, 
+                 stockRangeUpper = stockRangeUpper, volatility = volatility, 
+                 volatilityType = volatilityType, continuousUpdate = continuousUpdate, 
+                 referencePriceType = referencePriceType, deltaNeutralOrderType = deltaNeutralOrderType, 
+                 deltaNeutralAuxPrice = deltaNeutralAuxPrice, basisPoints = basisPoints, 
+                 basisPointsType = basisPointsType, scaleInitLevelSize = scaleInitLevelSize, 
+                 scaleSubsLevelSize = scaleSubsLevelSize, scalePriceIncrement = scalePriceIncrement, 
+                 account = account, settlingFirm = settlingFirm, clearingAccount = clearingAccount, 
+                 clearingIntent = clearingIntent, algoStrategy = algoStrategy, 
+                 algoParams = algoParams, whatIf = as.character(as.integer(whatIf)), 
+                 notHeld = as.character(as.integer(notHeld))), class = "twsOrder")
+  
+  Sys.sleep(1)
+  
+  cat(action," SIGNAL for ",toString(fx.list[i,])," @ ",as.numeric(filled[i])," on ",format(Sys.time(), "%Y %a %b %d %X"),"\n")
+  cat("********************************************************************* \n")  
+  
+  #init.cap <- as.real(reqAccountUpdates(tws)[[1]]$NetLiquidation[1])
+  
+  cat("AVAILABLE FUNDS: $", as.numeric(init.cap),"\n")
+  cat("********************************************************************* \n")  
+}

@@ -39,7 +39,7 @@ if(!file.exists("sessionData.RData"))
   fx.lock <- list(TRUE, TRUE, TRUE)
   
   img.dir <- "/Library/WebServer/Documents/PriceTape.png"; img.subdir <- "/Library/WebServer/Documents/PortSnap.png"; port.dir <- "/Library/WebServer/Documents/PortSnap.csv";
-   
+  
   margin <- 0.023
   oca <- 0; init <- FALSE; filled <- rep(0,nrow(fx.list)); cross <- rep(FALSE,nrow(fx.list)); t.tree <- as.matrix(seq(0,23,1))
 }
@@ -57,9 +57,9 @@ if(isConnection()){
     {
       Sys.sleep(30)
       tws <- ibgConnect(clientId=1)
-      cat("[Network connection re-established] \n")	
+      cat("[Network connection re-established] \n")  
       break
-    }		
+    }  	
   }
 }
 cat("[System online] \n")
@@ -93,7 +93,7 @@ while(TRUE)
     grid(lty = 3, col="#AAAAAA")
     dev.off()   
   }
-
+  
   while(TRUE)
   {
     tried <- try({
@@ -155,13 +155,13 @@ while(TRUE)
     {
       if(filled[i]) 
       {
-#         index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
-#         if(twsPortfolioValue(reqAccountUpdates(tws))$position[index] == 0) 
-#         {
-#           filled[i] <- 0
-#           cross[i] <- FALSE
-#         } 
-
+        #         index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
+        #         if(twsPortfolioValue(reqAccountUpdates(tws))$position[index] == 0) 
+        #         {
+        #           filled[i] <- 0
+        #           cross[i] <- FALSE
+        #         } 
+        
         if(filled[i] > 0 && !cross[i] && mkt[[i]]$AskPrice > tail(t.band[[i]]$gamma, 1)+(2*tail(t.band[[i]]$g_sigma, 1))) cross[i] <- TRUE
         if(filled[i] < 0 && !cross[i] && mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1)-(2*tail(t.band[[i]]$o_sigma, 1))) cross[i] <- TRUE
         
@@ -173,78 +173,78 @@ while(TRUE)
         }
         
         if(filled[i] < 0 && cross && mkt[[i]]$BidPrice >= tail(t.band[[i]]$omega, 1)) placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$BidPrice, tif="GTC", ocaGroup=oca))
-        {
+{
           filled[i] <- 0
           cross[i] <- FALSE
         }
 
-        if(filled[i] > 0 && !cross && mkt[[i]]$AskPrice < tail(t.band[[i]]$gamma, 1)-(2*tail(t.band[[i]]$g_sigma, 1))) 
-        {
-          placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$AskPrice, tif="GTC", ocaGroup=oca))
-          filled[i] <- 0
-          cross[i] <- FALSE
-        }
+if(filled[i] > 0 && !cross && mkt[[i]]$AskPrice < tail(t.band[[i]]$gamma, 1)-(2*tail(t.band[[i]]$g_sigma, 1))) 
+{
+  placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$AskPrice, tif="GTC", ocaGroup=oca))
+  filled[i] <- 0
+  cross[i] <- FALSE
+}
 
-        if(filled[i] < 0 && !cross && mkt[[i]]$BidPrice > tail(t.band[[i]]$omega, 1)+(2*tail(t.band[[i]]$o_sigma, 1))) 
-        {
-          placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$BidPrice, tif="GTC", ocaGroup=oca))
-          filled[i] <- 0
-          cross[i] <- FALSE
-        }
-        
+if(filled[i] < 0 && !cross && mkt[[i]]$BidPrice > tail(t.band[[i]]$omega, 1)+(2*tail(t.band[[i]]$o_sigma, 1))) 
+{
+  placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=mkt[[i]]$BidPrice, tif="GTC", ocaGroup=oca))
+  filled[i] <- 0
+  cross[i] <- FALSE
+}
+
       }
 
-      if(mkt[[i]]$AskPrice > tail(t.band[[i]]$gamma, 1) && !filled[i])
-      {
-        oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- mkt[[i]]$AskPrice
-        cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
-        
-        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=filled[i]))  
-        
-        index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))     
-      }   
+if(mkt[[i]]$AskPrice > tail(t.band[[i]]$gamma, 1) && !filled[i])
+{
+  oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- mkt[[i]]$AskPrice
+  cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
+  
+  placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="BUY", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=filled[i]))  
+  
+  index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))     
+}   
 
-      if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1) && !filled[i])
-      {
-        oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- -mkt[[i]]$BidPrice 
-        cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
-        
-        placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=abs(filled[i])))  
-        
-        index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
-      } 
+if(mkt[[i]]$BidPrice < tail(t.band[[i]]$omega, 1) && !filled[i])
+{
+  oca <- format(Sys.time(), "%Y%m%d %X"); filled[i] <- -mkt[[i]]$BidPrice 
+  cct <- lapply(1:nrow(fx.list), function(i){ContractDetails(fx.list[i,1],fx.list[i,2],"currency", tws)})
+  
+  placeOrder(tws, cct[[i]], Order=twsOrder(reqIds(tws), action="SELL", totalQuantity=as.integer(lot.size),  orderType="LMT", lmtPrice=abs(filled[i])))  
+  
+  index <- which(twsPortfolioValue(reqAccountUpdates(tws))$local == paste(cct[[i]]$symbol,".",cct[[i]]$currency, sep=""))
+} 
     }
   }
-  
-  portfolio <- twsPortfolioValue(reqAccountUpdates(tws))
-  if(!is.null(portfolio)){write.table(portfolio, port.dir, sep=",", append=FALSE, row.names=FALSE, col.names=TRUE, fileEncoding="UTF-8")}	
 
-  png(filename=img.dir, width=750, height=996)
-  par(mfrow=c(3,1))
-  for(i in 1:nrow(fx.list))
-  {
-    tr <- t.band[[i]]
-    tr[nrow(tr),1] <- (mkt[[i]]$AskPrice+mkt[[i]]$BidPrice)/2
-    par(mfrow=c(1,1))
-    myTheme <- chart_theme()
-    myTheme$col$up.col <- "#97F55A"
-    plot(chart_Series(OHLC(tr), type ="candlesticks", on=1, theme=myTheme, name=paste(fx.list[i,1],"-",fx.list[i,2], sep=""), 
-                      TA='add_TA(tr$gamma,col="#6495ED", on=1, lwd=1);
-                  add_TA((2*tr$g_sigma)+tr$gamma,col="pink", on=1, lwd=1);
-                  add_TA(tr$gamma-(2*tr$g_sigma),col="pink", on=1, lwd=1);
-                  add_TA(tr$omega, col="#FF4040", on=1,lwd=1.5);
-                  add_TA((2*tr$o_sigma)+tr$omega,col="pink", on=1, lwd=1);
-                  add_TA(tr$omega-(2*tr$o_sigma),col="pink", on=1, lwd=1);
-                  if(filled[i] > 0) add_TA(cbind(tr, rep(filled[i], nrow(tr)))[,ncol(tr)+1], on=1, col="#97F55A55", lwd=5, lty=3);
-                  if(filled[i] < 0) add_TA(cbind(tr, rep(abs(filled[i]), nrow(tr)))[,ncol(tr)+1], on=1, col="#FF404055", lwd=5, lty=3);
-                  add_TA((tr$gamma+tr$omega)/2, on=1,col="#A2CD5A", lwd=1, lty=3);'))
-    if(fx.lock[[i]]) mtext("LOCKED", side=4, col="red", line=0.2, cex=0.8)
-  }
-  dev.off() 
-  
-  end.time <- Sys.time()
-  diff.time <- 5-(end.time-start.time)
-  Sys.sleep(ifelse(diff.time > 0, diff.time, 0))
+portfolio <- twsPortfolioValue(reqAccountUpdates(tws))
+if(!is.null(portfolio)){write.table(portfolio, port.dir, sep=",", append=FALSE, row.names=FALSE, col.names=TRUE, fileEncoding="UTF-8")}	
+
+png(filename=img.dir, width=750, height=996)
+par(mfrow=c(3,1))
+for(i in 1:nrow(fx.list))
+{
+  tr <- t.band[[i]]
+  tr[nrow(tr),1] <- (mkt[[i]]$AskPrice+mkt[[i]]$BidPrice)/2
+  par(mfrow=c(1,1))
+  myTheme <- chart_theme()
+  myTheme$col$up.col <- "#97F55A"
+  plot(chart_Series(OHLC(tr), type ="candlesticks", on=1, theme=myTheme, name=paste(fx.list[i,1],"-",fx.list[i,2], sep=""), 
+                    TA='add_TA(tr$gamma,col="#6495ED", on=1, lwd=1);
+                    add_TA((2*tr$g_sigma)+tr$gamma,col="pink", on=1, lwd=1);
+                    add_TA(tr$gamma-(2*tr$g_sigma),col="pink", on=1, lwd=1);
+                    add_TA(tr$omega, col="#FF4040", on=1,lwd=1.5);
+                    add_TA((2*tr$o_sigma)+tr$omega,col="pink", on=1, lwd=1);
+                    add_TA(tr$omega-(2*tr$o_sigma),col="pink", on=1, lwd=1);
+                    if(filled[i] > 0) add_TA(cbind(tr, rep(filled[i], nrow(tr)))[,ncol(tr)+1], on=1, col="#97F55A55", lwd=5, lty=3);
+                    if(filled[i] < 0) add_TA(cbind(tr, rep(abs(filled[i]), nrow(tr)))[,ncol(tr)+1], on=1, col="#FF404055", lwd=5, lty=3);
+                    add_TA((tr$gamma+tr$omega)/2, on=1,col="#A2CD5A", lwd=1, lty=3);'))
+  if(fx.lock[[i]]) mtext("LOCKED", side=4, col="red", line=0.2, cex=0.8)
+}
+dev.off() 
+
+end.time <- Sys.time()
+diff.time <- 5-(end.time-start.time)
+Sys.sleep(ifelse(diff.time > 0, diff.time, 0))
 }
 
 cat("**************************************************** \n")
